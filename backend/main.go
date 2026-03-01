@@ -8,12 +8,20 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	rpcURL := os.Getenv("ETH_RPC_URL")
+	// 加载 .env 文件
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	// 之后可以通过 os.Getenv 读取变量
+	rpcURL := os.Getenv("SEPOLIA_RPC_URL")
 	if rpcURL == "" {
-		log.Fatal("ETH_RPC_URL is not set")
+		log.Fatal("SEPOLIA_RPC_URL is not set")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
