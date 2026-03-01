@@ -24,7 +24,7 @@ func main() {
 		log.Fatal("SEPOLIA_RPC_URL is not set")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 	defer cancel()
 
 	client, err := ethclient.DialContext(ctx, rpcURL)
