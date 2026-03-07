@@ -1,0 +1,15 @@
+server:
+  port: "8081"
+  host: "0.0.0.0"
+  mode: "debug"  # debug, release, test
+
+database:
+  host: "localhost"
+  port: 3306
+  username: "admin"
+  password: "Lh19900205!"
+  dbname: "sh-manage"
+
+jwt:
+  secret: "your-secret-key-change-in-production"
+  expire: "24h"
