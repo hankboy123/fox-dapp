@@ -1,6 +1,7 @@
 package main
 
 import (
+	"backend/client"
 	"backend/config"
 	"backend/handlers"
 	"backend/middleware"
@@ -11,8 +12,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"reflect"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -83,18 +86,18 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
 	defer cancel()
 
-	client, err := ethclient.DialContext(ctx, rpcURL)
+	etrClient, err := ethclient.DialContext(ctx, rpcURL)
 	if err != nil {
 		log.Fatalf("failed to connect to Ethereum node: %v", err)
 	}
-	defer client.Close()
+	defer etrClient.Close()
 
-	chainID, err := client.ChainID(ctx)
+	chainID, err := etrClient.ChainID(ctx)
 	if err != nil {
 		log.Fatalf("failed to get chain id: %v", err)
 	}
 
-	header, err := client.HeaderByNumber(ctx, nil)
+	header, err := etrClient.HeaderByNumber(ctx, nil)
 	if err != nil {
 		log.Fatalf("failed to get latest block header: %v", err)
 	}
@@ -110,4 +113,32 @@ func main() {
 	fmt.Printf("Block Hash    : %s\n", header.Hash().Hex())
 	fmt.Printf("Block Time    : %s\n", time.Unix(int64(header.Time), 0).Format(time.RFC3339))
 	fmt.Println("==========================")
+
+	conn, _ := ethclient.Dial("wss://...")
+	contractAddr := common.HexToAddress("0x...")
+
+	listener, _ := client.NewMultiEventListener(contractAddr, conn)
+
+	// 注册 AuctionCreated 的处理函数
+	listener.RegisterHandler(reflect.TypeOf(&client.ClientAuctionCreated{}), func(ev interface{}) {
+		event := ev.(*client.ClientAuctionCreated)
+		log.Printf("新拍卖: ID=%v", event.AuctionId)
+	})
+
+	// 注册 AuctionEnded 的处理函数
+	listener.RegisterHandler(reflect.TypeOf(&client.ClientAuctionEnded{}), func(ev interface{}) {
+		event := ev.(*client.ClientAuctionEnded)
+		log.Printf("拍卖结束: ID=%v, 赢家=%v", event.AuctionId, event.Winner)
+	})
+
+	ctx1, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if err := listener.Start(ctx1); err != nil {
+		log.Fatal(err)
+	}
+	defer listener.Stop()
+
+	// 阻塞主线程
+	select {}
 }
