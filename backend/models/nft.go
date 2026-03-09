@@ -12,5 +12,6 @@ type Nft struct {
 	ReservePrice  float64 `gorm:"not null"` //地板价格
 	AuctionStatus string  `gorm:"not null"` //拍卖状态
 	Category      string  `gorm:"not null"` //分类
+	UserId        uint
 	User          User
 }
