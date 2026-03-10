@@ -9,11 +9,9 @@ import (
 	"backend/services"
 	"backend/utils"
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"reflect"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -33,6 +31,15 @@ func main() {
 	// 加载配置
 	cfg := config.Load("")
 
+	WSS_URL := os.Getenv("SEPOLIA_RPC_WSS_URL")
+	if WSS_URL == "" {
+		log.Fatal("SEPOLIA_RPC_WSS_URL is not set")
+	}
+	CONTRACT_ADDRESS := os.Getenv("CONTRACT_ADDRESS")
+	if WSS_URL == "" {
+		log.Fatal("CONTRACT_ADDRESS is not set")
+	}
+
 	db, err := gorm.Open(mysql.Open(config.GetMySQLDSN(cfg)), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("Failed to connect database: %v", err)
@@ -43,8 +50,34 @@ func main() {
 		log.Fatalf("Failed to migrate database: %v", err)
 	}
 
+	conn, _ := ethclient.Dial(WSS_URL)
+	contractAddr := common.HexToAddress(CONTRACT_ADDRESS)
+
+	listener, _ := client.NewMultiEventListener(contractAddr, conn)
+
 	userService := services.NewUserService(db)
 	userHandler := handlers.NewUserHandler(userService, []byte(cfg.JWT.Secret))
+	auctionService := services.NewAuctionService(db, userService, nil)
+	// 注册 AuctionCreated 的处理函数
+	listener.RegisterHandler(reflect.TypeOf(&client.ClientAuctionCreated{}), func(ev interface{}) {
+		event := ev.(*client.ClientAuctionCreated)
+		log.Printf("新拍卖: ID=%v", event.AuctionId)
+	})
+	listener.RegisterHandler(reflect.TypeOf(&client.ClientAuctionCreated{}), auctionService.HandleClientAuctionCreatedEvent)
+
+	// 注册 AuctionEnded 的处理函数
+	listener.RegisterHandler(reflect.TypeOf(&client.ClientAuctionEnded{}), auctionService.HandleClientAuctionEndedEvent)
+
+	// 注册 BidPlaced 的处理函数
+	listener.RegisterHandler(reflect.TypeOf(&client.ClientBidPlaced{}), auctionService.HandleClientBidPlacedEvent)
+
+	ctx1, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if err := listener.Start(ctx1); err != nil {
+		log.Fatal(err)
+	}
+	defer listener.Stop()
 
 	r := gin.Default()
 
@@ -77,6 +110,7 @@ func main() {
 		log.Fatalf("Failed to start server: %v", err)
 	}
 
+	/**
 	// 之后可以通过 os.Getenv 读取变量
 	rpcURL := os.Getenv("SEPOLIA_RPC_URL")
 	if rpcURL == "" {
@@ -114,31 +148,9 @@ func main() {
 	fmt.Printf("Block Time    : %s\n", time.Unix(int64(header.Time), 0).Format(time.RFC3339))
 	fmt.Println("==========================")
 
-	conn, _ := ethclient.Dial("wss://...")
-	contractAddr := common.HexToAddress("0x...")
 
-	listener, _ := client.NewMultiEventListener(contractAddr, conn)
-
-	// 注册 AuctionCreated 的处理函数
-	listener.RegisterHandler(reflect.TypeOf(&client.ClientAuctionCreated{}), func(ev interface{}) {
-		event := ev.(*client.ClientAuctionCreated)
-		log.Printf("新拍卖: ID=%v", event.AuctionId)
-	})
-
-	// 注册 AuctionEnded 的处理函数
-	listener.RegisterHandler(reflect.TypeOf(&client.ClientAuctionEnded{}), func(ev interface{}) {
-		event := ev.(*client.ClientAuctionEnded)
-		log.Printf("拍卖结束: ID=%v, 赢家=%v", event.AuctionId, event.Winner)
-	})
-
-	ctx1, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	if err := listener.Start(ctx1); err != nil {
-		log.Fatal(err)
-	}
-	defer listener.Stop()
+	*/
 
 	// 阻塞主线程
-	select {}
+	//select {}
 }

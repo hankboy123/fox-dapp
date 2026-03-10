@@ -1,9 +1,11 @@
 package services
 
 import (
+	"backend/client"
 	"backend/dto"
 	"backend/models"
 	"backend/utils"
+	"log"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -20,7 +22,7 @@ func NewAuctionService(db *gorm.DB, userService *UserService, c *gin.Context) *A
 	return &AuctionService{db: db, userService: userService, context: c}
 }
 
-func (p *AuctionService) bidPrice(bidDto *dto.BidDto) (*models.Auction, *utils.AppError) {
+func (p *AuctionService) placeBid(bidDto *dto.BidDto) (*models.Auction, *utils.AppError) {
 	if bidDto == nil {
 		return nil, utils.NewAppError(500, "参数不能为空")
 	}
@@ -49,4 +51,30 @@ func (p *AuctionService) endAuction(auctionID uint) (*models.Auction, *utils.App
 	}
 	//TODO: 结束拍卖的逻辑
 	return &auction, nil
+}
+
+func (p *AuctionService) HandleClientAuctionCreatedEvent(clientAuctionCreated interface{}) {
+	var auction models.Auction
+	event := clientAuctionCreated.(*client.ClientAuctionCreated)
+	log.Printf("新拍卖: ID=%v", event.AuctionId)
+	if err := p.db.First(&auction, event.AuctionId).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+
+		}
+	}
+}
+
+func (p *AuctionService) HandleClientAuctionEndedEvent(clientAuctionEnded interface{}) {
+	var auction models.Auction
+	event := clientAuctionEnded.(*client.ClientAuctionEnded)
+	log.Printf("拍卖结束: ID=%v, 赢家=%v", event.AuctionId, event.Winner)
+	if err := p.db.First(&auction, event.AuctionId).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+
+		}
+	}
+}
+
+func (p *AuctionService) HandleClientBidPlacedEvent(clientBidPlaced interface{}) {
+
 }
