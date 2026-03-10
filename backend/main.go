@@ -12,6 +12,7 @@ import (
 	"log"
 	"os"
 	"reflect"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -55,6 +56,13 @@ func main() {
 
 	listener, _ := client.NewMultiEventListener(contractAddr, conn)
 
+	// 自定义重连策略（可选）
+	listener.RetryPolicy = client.RetryPolicy{
+		InitialBackoff: 2 * time.Second,
+		MaxBackoff:     1 * time.Minute,
+		Multiplier:     1.5,
+		MaxRetries:     10,
+	}
 	userService := services.NewUserService(db)
 	userHandler := handlers.NewUserHandler(userService, []byte(cfg.JWT.Secret))
 	nftService := services.NewNftService(db, userService, nil)
