@@ -15,11 +15,12 @@ type AuctionService struct {
 	// 这里可以添加数据库连接等依赖
 	db          *gorm.DB
 	context     *gin.Context
+	nftService  *NftService
 	userService *UserService
 }
 
-func NewAuctionService(db *gorm.DB, userService *UserService, c *gin.Context) *AuctionService {
-	return &AuctionService{db: db, userService: userService, context: c}
+func NewAuctionService(db *gorm.DB, nftService *NftService, userService *UserService, c *gin.Context) *AuctionService {
+	return &AuctionService{db: db, nftService: nftService, userService: userService, context: c}
 }
 
 func (p *AuctionService) placeBid(bidDto *dto.BidDto) (*models.Auction, *utils.AppError) {

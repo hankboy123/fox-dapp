@@ -57,7 +57,8 @@ func main() {
 
 	userService := services.NewUserService(db)
 	userHandler := handlers.NewUserHandler(userService, []byte(cfg.JWT.Secret))
-	auctionService := services.NewAuctionService(db, userService, nil)
+	nftService := services.NewNftService(db, userService, nil)
+	auctionService := services.NewAuctionService(db, nftService, userService, nil)
 	// 注册 AuctionCreated 的处理函数
 
 	listener.RegisterHandler(reflect.TypeOf(&client.ClientAuctionCreated{}), auctionService.HandleClientAuctionCreatedEvent)
