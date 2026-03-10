@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"gorm.io/driver/mysql"
@@ -51,10 +50,17 @@ func main() {
 		log.Fatalf("Failed to migrate database: %v", err)
 	}
 
-	conn, _ := ethclient.Dial(WSS_URL)
+	nodes := []string{
+		WSS_URL,
+	}
 	contractAddr := common.HexToAddress(CONTRACT_ADDRESS)
 
-	listener, _ := client.NewMultiEventListener(contractAddr, conn)
+	// 创建节点池（这里使用轮询策略）
+	pool := client.NewRoundRobinPool(nodes)
+	// 也可以使用随机策略：
+	// pool := NewRandomPool(nodes)
+
+	listener := client.NewMultiEventListener(contractAddr, pool)
 
 	// 自定义重连策略（可选）
 	listener.RetryPolicy = client.RetryPolicy{
