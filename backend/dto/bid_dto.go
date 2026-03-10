@@ -2,18 +2,26 @@ package dto
 
 import (
 	"backend/utils"
-	"strings"
+	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 )
 
 type BidDto struct {
-	ID          *uint   `json:"id,omitempty"` // omitempty让nil不输出
-	Name        *string `json:"name" binding:"required"`
-	Description *string `json:"description,omitempty"`
+	ID         *uint  `json:"id,omitempty"` // omitempty让nil不输出
+	BidderTime string `gorm:"not null"`
+	AuctionId  *big.Int
+	Bidder     common.Address `gorm:"not null"`
+	BidToken   common.Address `gorm:"not null"`
+	BidAmount  *big.Int
+	BidUsd18   *big.Int
+	Raw        types.Log
 }
 
 func (d *BidDto) Validate() *utils.AppError {
-	if d.Name == nil || strings.TrimSpace(*d.Name) == "" {
-		return utils.NewAppError(500, "名称不能为空")
+	if d.AuctionId == nil {
+		return utils.NewAppError(500, "拍卖ID不能为空")
 	}
 	return nil
 }

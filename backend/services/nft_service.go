@@ -31,9 +31,18 @@ func (p *NftService) CreateNft(nftDto *dto.NftDto) (*models.Nft, *utils.AppError
 		return nil, err
 	}
 
+	sellerAddressHex := nftDto.Seller.Hex()
+	nftAddressHex := nftDto.Nft.Hex()
 	nftModel := &models.Nft{
-		Name:   *nftDto.Name,
-		UserId: utils.GetCurrentUserID(p.context),
+		Name:        nftDto.Name,
+		Description: nftDto.Description,
+		AuctionId:   nftDto.AuctionId,
+		Seller:      &sellerAddressHex,
+		Nft:         &nftAddressHex,
+		TokenId:     nftDto.TokenId,
+		EndTime:     nftDto.EndTime,
+		MinBidUsd18: nftDto.MinBidUsd18,
+		UserId:      utils.GetCurrentUserID(p.context),
 	}
 
 	if err := p.db.Create(&nftModel).Error; err != nil {
@@ -79,8 +88,6 @@ func (p *NftService) UpdateNft(nft *dto.NftDto) (*models.Nft, *utils.AppError) {
 	if err := nft.Validate(); err != nil {
 		return nil, err
 	}
-
-	existNft.Name = *nft.Name
 
 	if err := p.db.Save(&existNft).Error; err != nil {
 		return nil, utils.NewAppError(500, "Failed to update nft")
