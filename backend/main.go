@@ -59,10 +59,7 @@ func main() {
 	userHandler := handlers.NewUserHandler(userService, []byte(cfg.JWT.Secret))
 	auctionService := services.NewAuctionService(db, userService, nil)
 	// 注册 AuctionCreated 的处理函数
-	listener.RegisterHandler(reflect.TypeOf(&client.ClientAuctionCreated{}), func(ev interface{}) {
-		event := ev.(*client.ClientAuctionCreated)
-		log.Printf("新拍卖: ID=%v", event.AuctionId)
-	})
+
 	listener.RegisterHandler(reflect.TypeOf(&client.ClientAuctionCreated{}), auctionService.HandleClientAuctionCreatedEvent)
 
 	// 注册 AuctionEnded 的处理函数
