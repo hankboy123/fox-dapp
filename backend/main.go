@@ -107,8 +107,8 @@ func main() {
 	if err := r.Run(addr); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
-
 	/**
+
 	// 之后可以通过 os.Getenv 读取变量
 	rpcURL := os.Getenv("SEPOLIA_RPC_URL")
 	if rpcURL == "" {
@@ -123,6 +123,8 @@ func main() {
 		log.Fatalf("failed to connect to Ethereum node: %v", err)
 	}
 	defer etrClient.Close()
+	instance, err := client.NewClient(contractAddress, client)
+	instance.ClientCaller.Auctions()
 
 	chainID, err := etrClient.ChainID(ctx)
 	if err != nil {
